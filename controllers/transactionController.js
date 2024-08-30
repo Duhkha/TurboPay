@@ -1,17 +1,54 @@
-const Web3 = require('web3');
-const web3 = new Web3(process.env.INFURA_URL);
+const { web3, contract } = require('../config/web3');
+const User = require('../models/userModel'); // Assuming you have a User model
 
+// Deposit Ether to Contract
 exports.deposit = async (req, res) => {
-    // Interaction with the smart contract to deposit funds
-    res.send('Deposit successful');
+  const { amount } = req.body; // Amount should be in Ether
+  const user = await User.findById(req.user.id);
+
+  try {
+    const receipt = await web3.eth.sendTransaction({
+      from: user.ethAddress,
+      to: contract.options.address,
+      value: web3.utils.toWei(amount, 'ether')
+    });
+    res.json({ message: "Deposit successful", transaction: receipt });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
+// Withdraw Ether from Contract
 exports.withdraw = async (req, res) => {
-    // Interaction with the smart contract to withdraw funds
-    res.send('Withdrawal successful');
+  // Implementation depends on contract methods available
 };
 
+// Send Ether to another user
 exports.send = async (req, res) => {
-    // Interaction with the smart contract to send funds
-    res.send('Funds sent');
+  const { recipientEmail, amount } = req.body;
+  const sender = await User.findById(req.user.id);
+  const recipient = await User.findOne({ email: recipientEmail });
+
+  if (!recipient) {
+    return res.status(404).json({ error: "Recipient not found" });
+  }
+
+  try {
+    const receipt = await contract.methods.transfer(recipient.ethAddress, web3.utils.toWei(amount, 'ether')).send({
+      from: sender.ethAddress
+    });
+    res.json({ message: "Funds sent successfully", transaction: receipt });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getBalance = async (req, res) => {
+    const userEthAddress = req.user.ethAddress;  // Make sure this is set correctly in your user's session or however you manage user state
+    try {
+        const balance = await contract.methods.getBalance(userEthAddress).call();
+        res.json({ balance: web3.utils.fromWei(balance, 'ether') });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch balance: ' + error.message });
+    }
 };

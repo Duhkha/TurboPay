@@ -1,14 +1,23 @@
 const express = require('express');
-const bodyParser = require('body-parser');
+const path = require('path');
 require('dotenv').config();
-
+const userRoutes = require('./routes/userRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
+const connectDB = require('./config/db');
 const app = express();
-app.use(bodyParser.json());
-
-const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+
+app.use(express.json());
+
+connectDB();
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+app.use('/api/users', userRoutes);
+app.use('/api/transactions', transactionRoutes);
+
+
+
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
