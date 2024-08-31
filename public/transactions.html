@@ -56,92 +56,105 @@
         }
       }
 
-      async function prepareAndDeposit() {
-        const amountInEther = document.getElementById('depositAmount').value;
-        const web3 = new Web3(window.ethereum);
+ 
+async function prepareAndDeposit() {
+  const amountInEther = document.getElementById('depositAmount').value;
+  const web3 = new Web3(window.ethereum);
 
-        if (!amountInEther || isNaN(amountInEther)) {
-          alert('Please enter a valid amount.');
-          return;
-        }
+  if (!amountInEther || isNaN(amountInEther)) {
+    alert('Please enter a valid amount.');
+    return;
+  }
 
-        const amountInWei = web3.utils.toWei(amountInEther, 'ether');
+  const amountInWei = web3.utils.toWei(amountInEther, 'ether');
 
-        try {
-          const response = await fetch('/api/transactions/prepare-deposit', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ amountInWei })
-          });
+  try {
+    const response = await fetch('/api/transactions/prepare-deposit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ amountInWei })
+    });
 
-          const txData = await response.json();
+    const txData = await response.json();
 
-          await ethereum.request({ method: 'eth_requestAccounts' });
-          const accounts = await web3.eth.getAccounts();
-          const account = accounts[0];
+    // Request account access if needed
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const accounts = await web3.eth.getAccounts();
+    const account = accounts[0];
 
-          const tx = {
-            from: account,
-            to: txData.to,
-            value: txData.value,
-            data: txData.data
-          };
+    const tx = {
+      from: account,
+      to: txData.to,
+      value: txData.value,
+      data: txData.data
+      // Gas estimation is handled by MetaMask
+    };
 
-          const txHash = await web3.eth.sendTransaction(tx);
-          console.log('Transaction Hash:', txHash);
-          alert('Deposit successful! Transaction Hash: ' + txHash.transactionHash);
-          
-          logTransaction('deposit', account, tx.to, amountInWei);
-        } catch (error) {
-          console.error('Deposit Error:', error);
-          alert('Deposit failed: ' + error.message);
-        }
-      }
+    // Send transaction using MetaMask
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [tx],
+    });
 
-      async function prepareAndWithdraw() {
-        const amountInEther = document.getElementById('withdrawAmount').value;
-        const web3 = new Web3(window.ethereum);
+    console.log('Transaction Hash:', txHash);
+    alert('Deposit successful! Transaction Hash: ' + txHash);
+  } catch (error) {
+    console.error('Deposit Error:', error);
+    alert('Deposit failed: ' + error.message);
+  }
+}
 
-        if (!amountInEther || isNaN(amountInEther)) {
-          alert('Please enter a valid amount.');
-          return;
-        }
+async function prepareAndWithdraw() {
+  const amountInEther = document.getElementById('withdrawAmount').value;
+  const web3 = new Web3(window.ethereum);
 
-        const amountInWei = web3.utils.toWei(amountInEther, 'ether');
+  if (!amountInEther || isNaN(amountInEther)) {
+    alert('Please enter a valid amount.');
+    return;
+  }
 
-        try {
-          const response = await fetch('/api/transactions/prepare-withdraw', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ amountInWei })
-          });
+  const amountInWei = web3.utils.toWei(amountInEther, 'ether');
 
-          const txData = await response.json();
+  try {
+    const response = await fetch('/api/transactions/prepare-withdraw', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ amountInWei })
+    });
 
-          await ethereum.request({ method: 'eth_requestAccounts' });
-          const accounts = await web3.eth.getAccounts();
-          const account = accounts[0];
+    const txData = await response.json();
 
-          const tx = {
-            from: account,
-            to: txData.to,
-            value: txData.value,
-            data: txData.data
-          };
+    // Request account access if needed
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const accounts = await web3.eth.getAccounts();
+    const account = accounts[0];
 
-          const txHash = await web3.eth.sendTransaction(tx);
-          console.log('Transaction Hash:', txHash);
-          alert('Withdraw successful! Transaction Hash: ' + txHash.transactionHash);
-          logTransaction('withdraw', account, tx.to, amountInWei);
-        } catch (error) {
-          console.error('Withdraw Error:', error);
-          alert('Withdraw failed: ' + error.message);
-        }
-      }
+    const tx = {
+      from: account,
+      to: txData.to,
+      value: txData.value,
+      data: txData.data
+      // Gas estimation is handled by MetaMask
+    };
+
+    // Send transaction using MetaMask
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [tx],
+    });
+
+    console.log('Transaction Hash:', txHash);
+    alert('Withdraw successful! Transaction Hash: ' + txHash);
+    logTransaction('withdraw', account, tx.to, amountInWei);
+  } catch (error) {
+    console.error('Withdraw Error:', error);
+    alert('Withdraw failed: ' + error.message);
+  }
+}
 
       async function prepareAndSend() {
         const recipientEmail = document.getElementById('recipientEmail').value;

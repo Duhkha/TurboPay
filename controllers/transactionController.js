@@ -2,24 +2,26 @@ const { web3, contract } = require('../config/web3');
 const User = require('../models/userModel'); 
 const TransactionLog = require('../models/transactionModel');
 
-exports.prepareDeposit = (req, res) => {
+exports.prepareDeposit = async (req, res) => {
   try {
-    const { amountInWei } = req.body;
+      const { amountInWei } = req.body;
 
-    if (!amountInWei || isNaN(amountInWei)) {
-      return res.status(400).json({ message: 'Invalid amount specified.' });
-    }
+      if (!amountInWei || isNaN(amountInWei)) {
+          return res.status(400).json({ message: 'Invalid amount specified.' });
+      }
 
-    const txData = contract.methods.deposit().encodeABI();
+      const txData = contract.methods.deposit().encodeABI();
 
-    res.json({
-      to: process.env.CONTRACT_ADDRESS,
-      data: txData,
-      value: amountInWei,
-    });
+    
+
+      res.json({
+          to: process.env.CONTRACT_ADDRESS,
+          data: txData,
+          value: amountInWei,
+      });
   } catch (error) {
-    console.error('Error preparing deposit:', error);
-    res.status(500).json({ message: 'Failed to prepare deposit transaction.' });
+      console.error('Error preparing deposit:', error);
+      res.status(500).json({ message: 'Failed to prepare deposit transaction.', error: error.message });
   }
 };
 
@@ -27,17 +29,15 @@ exports.prepareDeposit = (req, res) => {
 exports.prepareWithdraw = (req, res) => {
   try {
     const { amountInWei } = req.body;
-
     if (!amountInWei || isNaN(amountInWei)) {
       return res.status(400).json({ message: 'Invalid amount specified.' });
     }
-
     const txData = contract.methods.withdraw(amountInWei).encodeABI();
-
     res.json({
       to: process.env.CONTRACT_ADDRESS,
       data: txData,
-      value: '0', 
+      value: '0'
+      // No need to specify gas, as MetaMask will handle this
     });
   } catch (error) {
     console.error('Error preparing withdraw:', error);
