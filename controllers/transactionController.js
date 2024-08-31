@@ -49,24 +49,20 @@ exports.prepareWithdraw = (req, res) => {
 exports.prepareSendMoney = async (req, res) => {
   try {
     const { recipientEmail, amountInWei } = req.body;
-
     const recipientUser = await User.findOne({ email: recipientEmail });
     if (!recipientUser || !recipientUser.ethAddress) {
       return res.status(404).json({ message: 'Recipient not found or no Ethereum address associated with this email.' });
     }
-
     const recipient = recipientUser.ethAddress;
-
     if (!amountInWei || isNaN(amountInWei)) {
       return res.status(400).json({ message: 'Invalid amount specified.' });
     }
-
     const txData = contract.methods.sendMoney(recipient, amountInWei).encodeABI();
-
     res.json({
       to: process.env.CONTRACT_ADDRESS,
       data: txData,
-      value: '0', 
+      value: '0'
+      // No need to specify gas, as MetaMask will handle this
     });
   } catch (error) {
     console.error('Error preparing send money:', error);

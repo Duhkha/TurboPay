@@ -156,54 +156,60 @@ async function prepareAndWithdraw() {
   }
 }
 
-      async function prepareAndSend() {
-        const recipientEmail = document.getElementById('recipientEmail').value;
-        const amountInEther = document.getElementById('sendAmount').value;
-        const web3 = new Web3(window.ethereum);
+async function prepareAndSend() {
+  const recipientEmail = document.getElementById('recipientEmail').value;
+  const amountInEther = document.getElementById('sendAmount').value;
+  const web3 = new Web3(window.ethereum);
 
-        if (!recipientEmail) {
-          alert('Please enter a valid recipient email.');
-          return;
-        }
+  if (!recipientEmail) {
+    alert('Please enter a valid recipient email.');
+    return;
+  }
+  if (!amountInEther || isNaN(amountInEther)) {
+    alert('Please enter a valid amount.');
+    return;
+  }
 
-        if (!amountInEther || isNaN(amountInEther)) {
-          alert('Please enter a valid amount.');
-          return;
-        }
+  const amountInWei = web3.utils.toWei(amountInEther, 'ether');
 
-        const amountInWei = web3.utils.toWei(amountInEther, 'ether');
+  try {
+    const response = await fetch('/api/transactions/prepare-send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ recipientEmail, amountInWei })
+    });
 
-        try {
-          const response = await fetch('/api/transactions/prepare-send', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ recipientEmail, amountInWei })
-          });
+    const txData = await response.json();
 
-          const txData = await response.json();
+    // Request account access if needed
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const accounts = await web3.eth.getAccounts();
+    const account = accounts[0];
 
-          await ethereum.request({ method: 'eth_requestAccounts' });
-          const accounts = await web3.eth.getAccounts();
-          const account = accounts[0];
+    const tx = {
+      from: account,
+      to: txData.to,
+      value: txData.value,
+      data: txData.data
+      // Gas estimation is handled by MetaMask
+    };
 
-          const tx = {
-            from: account,
-            to: txData.to,
-            value: txData.value,
-            data: txData.data
-          };
+    // Send transaction using MetaMask
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [tx],
+    });
 
-          const txHash = await web3.eth.sendTransaction(tx);
-          console.log('Transaction Hash:', txHash);
-          alert('Send successful! Transaction Hash: ' + txHash.transactionHash);
-          logTransaction('send', account, tx.to, amountInWei);
-        } catch (error) {
-          console.error('Send Error:', error);
-          alert('Send failed: ' + error.message);
-        }
-      }
+    console.log('Transaction Hash:', txHash);
+    alert('Send successful! Transaction Hash: ' + txHash);
+    logTransaction('send', account, tx.to, amountInWei);
+  } catch (error) {
+    console.error('Send Error:', error);
+    alert('Send failed: ' + error.message);
+  }
+}
 
 
 
