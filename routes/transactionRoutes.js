@@ -1,9 +1,10 @@
 const express = require('express');
-const { deposit, withdraw, send } = require('../controllers/transactionController');
+const transactionController = require('../controllers/transactionController');
 const router = express.Router();
 
-router.post('/deposit', deposit);
-router.post('/withdraw', withdraw);
-router.post('/send', send);
+router.post('/prepare-deposit', transactionController.prepareDeposit);
+router.post('/prepare-withdraw', transactionController.prepareWithdraw);
+router.post('/prepare-send', transactionController.prepareSendMoney);
+router.get('/balance', transactionController.getBalance);
 
 module.exports = router;

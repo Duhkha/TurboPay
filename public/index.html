@@ -11,6 +11,7 @@
         <input type="text" id="signupName" placeholder="Name" required>
         <input type="email" id="signupEmail" placeholder="Email" required>
         <input type="password" id="signupPassword" placeholder="Password" required>
+        <input type="text" id="signupEthAddress" placeholder="Ethereum Address" required>
         <button type="submit">Sign Up</button>
     </form>
 
@@ -27,7 +28,8 @@
             const data = {
                 name: document.getElementById('signupName').value,
                 email: document.getElementById('signupEmail').value,
-                password: document.getElementById('signupPassword').value
+                password: document.getElementById('signupPassword').value,
+                ethAddress: document.getElementById('signupEthAddress').value
             };
             fetch('/api/users/register', {
                 method: 'POST',
@@ -36,9 +38,20 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(data => alert('Signup Success: ' + JSON.stringify(data)))
-            .catch(error => alert('Signup Error: ' + error));
+            .then(response => {
+    if (!response.ok) {
+        throw new Error('Network response was not ok');
+    }
+    return response.json();
+})
+.then(data => {
+    if (data.success) {
+        alert('Signup Success: ' + data.message);
+    } else {
+        throw new Error(data.message);
+    }
+})
+.catch(error => alert('Signup Error: ' + error.message));
         });
 
         document.getElementById('loginForm').addEventListener('submit', function(event) {
@@ -55,8 +68,14 @@
                 body: JSON.stringify(data)
             })
             .then(response => response.json())
-            .then(data => alert('Login Success: ' + JSON.stringify(data)))
-            .catch(error => alert('Login Error: ' + error));
+            .then(data => {
+                if(data.token) {
+                    alert('Login Success: Token ' + data.token);
+                } else {
+                    throw new Error('Login failed, please check your credentials');
+                }
+            })
+            .catch(error => alert('Login Error: ' + error.message));
         });
     </script>
 </body>

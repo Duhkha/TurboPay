@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Ethereum Balance</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input {
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Check Your Ethereum Balance</h1>
+    <input type="text" id="ethAddress" placeholder="Enter your Ethereum address">
+    <button onclick="fetchBalance()">Show My Balance</button>
+    <h2 id="balanceDisplay"></h2>
+
+    <script>
+        function fetchBalance() {
+            const ethAddress = document.getElementById('ethAddress').value;
+            if (!ethAddress) {
+                document.getElementById('balanceDisplay').innerText = 'Please enter a valid Ethereum address.';
+                return;
+            }
+
+            fetch(`/api/users/balance?ethAddress=${encodeURIComponent(ethAddress)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.balance) {
+                    document.getElementById('balanceDisplay').innerText = 'Your Balance: ' + data.balance + ' ETH';
+                } else {
+                    throw new Error('No balance data available');
+                }
+            })
+            .catch(error => {
+                document.getElementById('balanceDisplay').innerText = 'Error fetching balance: ' + error.message;
+            });
+        }
+    </script>
+</body>
+</html>

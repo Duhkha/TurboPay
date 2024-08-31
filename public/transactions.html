@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TurboPay Transactions</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+</head>
+<body>
+    <h1>TurboPay Transactions</h1>
+
+    <h2>Check Your Balance</h2>
+    <input type="text" id="userEmail" placeholder="Your Email">
+    <button onclick="checkBalance()">Show Balance</button>
+    <p id="balanceDisplay">Your balance will appear here.</p>
+
+    <h2>Deposit Ether</h2>
+    <input type="text" id="depositAmount" placeholder="Amount in Ether">
+    <button onclick="prepareAndDeposit()">Deposit</button>
+
+    <h2>Withdraw Ether</h2>
+    <input type="text" id="withdrawAmount" placeholder="Amount in Ether">
+    <button onclick="prepareAndWithdraw()">Withdraw</button>
+
+    <h2>Send Ether to Another User</h2>
+    <input type="text" id="recipientEmail" placeholder="Recipient Email">
+    <input type="text" id="sendAmount" placeholder="Amount in Ether">
+    <button onclick="prepareAndSend()">Send</button>
+
+    <script>
+      async function checkBalance() {
+        const email = document.getElementById('userEmail').value;
+
+        if (!email) {
+          alert('Please enter a valid email address.');
+          return;
+        }
+
+        try {
+          const response = await fetch(`/api/transactions/balance?email=${encodeURIComponent(email)}`);
+          const data = await response.json();
+
+          if (data.balance) {
+            document.getElementById('balanceDisplay').innerText = `Your Balance: ${data.balance} ETH`;
+          } else {
+            throw new Error('Failed to fetch balance');
+          }
+        } catch (error) {
+          console.error('Balance Error:', error);
+          document.getElementById('balanceDisplay').innerText = 'Error fetching balance: ' + error.message;
+        }
+      }
+
+      async function prepareAndDeposit() {
+        const amountInEther = document.getElementById('depositAmount').value;
+        const web3 = new Web3(window.ethereum);
+
+        if (!amountInEther || isNaN(amountInEther)) {
+          alert('Please enter a valid amount.');
+          return;
+        }
+
+        const amountInWei = web3.utils.toWei(amountInEther, 'ether');
+
+        try {
+          const response = await fetch('/api/transactions/prepare-deposit', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ amountInWei })
+          });
+
+          const txData = await response.json();
+
+          await ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await web3.eth.getAccounts();
+          const account = accounts[0];
+
+          const tx = {
+            from: account,
+            to: txData.to,
+            value: txData.value,
+            data: txData.data
+          };
+
+          const txHash = await web3.eth.sendTransaction(tx);
+          console.log('Transaction Hash:', txHash);
+          alert('Deposit successful! Transaction Hash: ' + txHash.transactionHash);
+        } catch (error) {
+          console.error('Deposit Error:', error);
+          alert('Deposit failed: ' + error.message);
+        }
+      }
+
+      async function prepareAndWithdraw() {
+        const amountInEther = document.getElementById('withdrawAmount').value;
+        const web3 = new Web3(window.ethereum);
+
+        if (!amountInEther || isNaN(amountInEther)) {
+          alert('Please enter a valid amount.');
+          return;
+        }
+
+        const amountInWei = web3.utils.toWei(amountInEther, 'ether');
+
+        try {
+          const response = await fetch('/api/transactions/prepare-withdraw', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ amountInWei })
+          });
+
+          const txData = await response.json();
+
+          await ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await web3.eth.getAccounts();
+          const account = accounts[0];
+
+          const tx = {
+            from: account,
+            to: txData.to,
+            value: txData.value,
+            data: txData.data
+          };
+
+          const txHash = await web3.eth.sendTransaction(tx);
+          console.log('Transaction Hash:', txHash);
+          alert('Withdraw successful! Transaction Hash: ' + txHash.transactionHash);
+        } catch (error) {
+          console.error('Withdraw Error:', error);
+          alert('Withdraw failed: ' + error.message);
+        }
+      }
+
+      async function prepareAndSend() {
+        const recipientEmail = document.getElementById('recipientEmail').value;
+        const amountInEther = document.getElementById('sendAmount').value;
+        const web3 = new Web3(window.ethereum);
+
+        if (!recipientEmail) {
+          alert('Please enter a valid recipient email.');
+          return;
+        }
+
+        if (!amountInEther || isNaN(amountInEther)) {
+          alert('Please enter a valid amount.');
+          return;
+        }
+
+        const amountInWei = web3.utils.toWei(amountInEther, 'ether');
+
+        try {
+          const response = await fetch('/api/transactions/prepare-send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ recipientEmail, amountInWei })
+          });
+
+          const txData = await response.json();
+
+          await ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await web3.eth.getAccounts();
+          const account = accounts[0];
+
+          const tx = {
+            from: account,
+            to: txData.to,
+            value: txData.value,
+            data: txData.data
+          };
+
+          const txHash = await web3.eth.sendTransaction(tx);
+          console.log('Transaction Hash:', txHash);
+          alert('Send successful! Transaction Hash: ' + txHash.transactionHash);
+        } catch (error) {
+          console.error('Send Error:', error);
+          alert('Send failed: ' + error.message);
+        }
+      }
+    </script>
+</body>
+</html>

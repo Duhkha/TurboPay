@@ -12,9 +12,20 @@ app.use(express.json());
 
 connectDB();
 
+// this is just for testing purposes
+app.use(express.static('public'));
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+app.get('/transactions', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'transactions.html'));
+});
+
+//
+
+
 
 app.use('/api/users', userRoutes);
 app.use('/api/transactions', transactionRoutes);

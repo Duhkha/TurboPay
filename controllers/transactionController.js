@@ -1,54 +1,107 @@
 const { web3, contract } = require('../config/web3');
-const User = require('../models/userModel'); // Assuming you have a User model
+const User = require('../models/userModel'); 
 
-// Deposit Ether to Contract
-exports.deposit = async (req, res) => {
-  const { amount } = req.body; // Amount should be in Ether
-  const user = await User.findById(req.user.id);
-
+exports.prepareDeposit = (req, res) => {
   try {
-    const receipt = await web3.eth.sendTransaction({
-      from: user.ethAddress,
-      to: contract.options.address,
-      value: web3.utils.toWei(amount, 'ether')
+    const { amountInWei } = req.body;
+
+    if (!amountInWei || isNaN(amountInWei)) {
+      return res.status(400).json({ message: 'Invalid amount specified.' });
+    }
+
+    const txData = contract.methods.deposit().encodeABI();
+
+    res.json({
+      to: process.env.CONTRACT_ADDRESS,
+      data: txData,
+      value: amountInWei,
     });
-    res.json({ message: "Deposit successful", transaction: receipt });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error preparing deposit:', error);
+    res.status(500).json({ message: 'Failed to prepare deposit transaction.' });
   }
 };
 
-// Withdraw Ether from Contract
-exports.withdraw = async (req, res) => {
-  // Implementation depends on contract methods available
-};
 
-// Send Ether to another user
-exports.send = async (req, res) => {
-  const { recipientEmail, amount } = req.body;
-  const sender = await User.findById(req.user.id);
-  const recipient = await User.findOne({ email: recipientEmail });
-
-  if (!recipient) {
-    return res.status(404).json({ error: "Recipient not found" });
-  }
-
+exports.prepareWithdraw = (req, res) => {
   try {
-    const receipt = await contract.methods.transfer(recipient.ethAddress, web3.utils.toWei(amount, 'ether')).send({
-      from: sender.ethAddress
+    const { amountInWei } = req.body;
+
+    if (!amountInWei || isNaN(amountInWei)) {
+      return res.status(400).json({ message: 'Invalid amount specified.' });
+    }
+
+    const txData = contract.methods.withdraw(amountInWei).encodeABI();
+
+    res.json({
+      to: process.env.CONTRACT_ADDRESS,
+      data: txData,
+      value: '0', 
     });
-    res.json({ message: "Funds sent successfully", transaction: receipt });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error preparing withdraw:', error);
+    res.status(500).json({ message: 'Failed to prepare withdraw transaction.' });
   }
 };
+
+
+exports.prepareSendMoney = async (req, res) => {
+  try {
+    const { recipientEmail, amountInWei } = req.body;
+
+    const recipientUser = await User.findOne({ email: recipientEmail });
+    if (!recipientUser || !recipientUser.ethAddress) {
+      return res.status(404).json({ message: 'Recipient not found or no Ethereum address associated with this email.' });
+    }
+
+    const recipient = recipientUser.ethAddress;
+
+    if (!amountInWei || isNaN(amountInWei)) {
+      return res.status(400).json({ message: 'Invalid amount specified.' });
+    }
+
+    const txData = contract.methods.sendMoney(recipient, amountInWei).encodeABI();
+
+    res.json({
+      to: process.env.CONTRACT_ADDRESS,
+      data: txData,
+      value: '0', 
+    });
+  } catch (error) {
+    console.error('Error preparing send money:', error);
+    res.status(500).json({ message: 'Failed to prepare send money transaction.' });
+  }
+};
+
 
 exports.getBalance = async (req, res) => {
-    const userEthAddress = req.user.ethAddress;  // Make sure this is set correctly in your user's session or however you manage user state
-    try {
-        const balance = await contract.methods.getBalance(userEthAddress).call();
-        res.json({ balance: web3.utils.fromWei(balance, 'ether') });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch balance: ' + error.message });
+  try {
+    const { email } = req.query;
+
+    // Lookup the user's Ethereum address based on their email
+    const user = await User.findOne({ email });
+    if (!user || !user.ethAddress) {
+      return res.status(404).json({ message: 'User not found or no Ethereum address associated with this email.' });
     }
+
+    const ethAddress = user.ethAddress;
+
+    // Fetch the balance from the smart contract
+    const balance = await contract.methods.getBalance(ethAddress).call();
+    const balanceInEther = web3.utils.fromWei(balance, 'ether');
+
+    res.json({ balance: balanceInEther });
+  } catch (error) {
+    console.error('Blockchain Error:', error);
+    res.status(500).json({ message: 'Failed to retrieve the Ethereum balance.' });
+  }
 };
+
+
+
+/*
+const ethAddress = req.query.ethAddress; 
+    if (!web3.utils.isAddress(ethAddress)) {
+      return res.status(400).json({ message: 'Invalid Ethereum address' });
+    }
+*/
