@@ -1,5 +1,6 @@
 const { web3, contract } = require('../config/web3');
 const User = require('../models/userModel'); 
+const TransactionLog = require('../models/transactionModel');
 
 exports.prepareDeposit = (req, res) => {
   try {
@@ -78,7 +79,6 @@ exports.getBalance = async (req, res) => {
   try {
     const { email } = req.query;
 
-    // Lookup the user's Ethereum address based on their email
     const user = await User.findOne({ email });
     if (!user || !user.ethAddress) {
       return res.status(404).json({ message: 'User not found or no Ethereum address associated with this email.' });
@@ -86,7 +86,6 @@ exports.getBalance = async (req, res) => {
 
     const ethAddress = user.ethAddress;
 
-    // Fetch the balance from the smart contract
     const balance = await contract.methods.getBalance(ethAddress).call();
     const balanceInEther = web3.utils.fromWei(balance, 'ether');
 
@@ -94,6 +93,61 @@ exports.getBalance = async (req, res) => {
   } catch (error) {
     console.error('Blockchain Error:', error);
     res.status(500).json({ message: 'Failed to retrieve the Ethereum balance.' });
+  }
+};
+
+exports.logTransaction = async (req, res) => {
+  try {
+    const { type, from, to, amount } = req.body;
+
+    if (!type || !from || !to || !amount ) {
+      return res.status(400).json({ message: 'Missing required fields.' });
+    }
+
+    const validTypes = ['deposit', 'withdraw', 'send'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ message: 'Invalid transaction type.' });
+    }
+
+    const log = new TransactionLog({
+      type,
+      from,
+      to,
+      amount
+    });
+
+    await log.save();
+
+    res.status(201).json({ message: 'Transaction logged successfully' });
+  } catch (error) {
+    console.error('Error logging transaction:', error);
+    res.status(500).json({ message: 'Failed to log transaction.' });
+  }
+};
+
+exports.getLogsByEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !user.ethAddress) {
+      return res.status(404).json({ message: 'User not found or Ethereum address not associated with this email.' });
+    }
+
+    const ethAddress = user.ethAddress;
+    
+    const logs = await TransactionLog.find({
+      $or: [{ from: ethAddress }, { to: ethAddress }]
+    }).sort({ timestamp: -1 });
+
+    res.json(logs);
+  } catch (error) {
+    console.error('Error fetching logs by email:', error);
+    res.status(500).json({ message: 'Failed to fetch transaction logs.' });
   }
 };
 

@@ -14,6 +14,11 @@
     <button onclick="checkBalance()">Show Balance</button>
     <p id="balanceDisplay">Your balance will appear here.</p>
 
+    <h2>View Your Transaction Logs</h2>
+    <input type="text" id="logEmail" placeholder="Your Email">
+    <button onclick="viewTransactionLogs()">View Logs</button>
+    <div id="transactionLogs">Your transaction logs will appear here.</div>
+
     <h2>Deposit Ether</h2>
     <input type="text" id="depositAmount" placeholder="Amount in Ether">
     <button onclick="prepareAndDeposit()">Deposit</button>
@@ -87,6 +92,8 @@
           const txHash = await web3.eth.sendTransaction(tx);
           console.log('Transaction Hash:', txHash);
           alert('Deposit successful! Transaction Hash: ' + txHash.transactionHash);
+          
+          logTransaction('deposit', account, tx.to, amountInWei);
         } catch (error) {
           console.error('Deposit Error:', error);
           alert('Deposit failed: ' + error.message);
@@ -129,6 +136,7 @@
           const txHash = await web3.eth.sendTransaction(tx);
           console.log('Transaction Hash:', txHash);
           alert('Withdraw successful! Transaction Hash: ' + txHash.transactionHash);
+          logTransaction('withdraw', account, tx.to, amountInWei);
         } catch (error) {
           console.error('Withdraw Error:', error);
           alert('Withdraw failed: ' + error.message);
@@ -177,11 +185,74 @@
           const txHash = await web3.eth.sendTransaction(tx);
           console.log('Transaction Hash:', txHash);
           alert('Send successful! Transaction Hash: ' + txHash.transactionHash);
+          logTransaction('send', account, tx.to, amountInWei);
         } catch (error) {
           console.error('Send Error:', error);
           alert('Send failed: ' + error.message);
         }
       }
+
+
+
+      async function logTransaction( type, from, to, amount) {
+        try {
+            await fetch('/api/transactions/log', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: type,           
+                from: from,          
+                to: to,               
+                amount: amount,        
+            })
+            });
+            console.log(`Transaction of type ${type} logged successfully.`);
+        } catch (error) {
+            console.error(`Error logging ${type} transaction:`, error);
+        }
+        }
+
+        async function viewTransactionLogs() {
+  const email = document.getElementById('logEmail').value;
+
+  if (!email) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`api/transactions/log-email?email=${encodeURIComponent(email)}`);
+
+    if (!response.ok) {
+      // Handle non-JSON or error responses
+      const text = await response.text(); // Read the response as plain text
+      console.error('Error fetching transaction logs:', text);
+      document.getElementById('transactionLogs').innerText = 'Error fetching transaction logs: ' + text;
+      return;
+    }
+
+    const logs = await response.json();
+
+    if (logs.length === 0) {
+      document.getElementById('transactionLogs').innerText = 'No transactions found for this email.';
+      return;
+    }
+
+    let logHtml = '<ul>';
+    logs.forEach(log => {
+      logHtml += `<li>Type: ${log.type}, From: ${log.from}, To: ${log.to}, Amount: ${log.amount, 'ether'} ETH, Date: ${new Date(log.timestamp).toLocaleString()}</li>`;
+    });
+    logHtml += '</ul>';
+
+    document.getElementById('transactionLogs').innerHTML = logHtml;
+  } catch (error) {
+    console.error('Error fetching transaction logs:', error);
+    document.getElementById('transactionLogs').innerText = 'Error fetching transaction logs: ' + error.message;
+  }
+}
+
     </script>
 </body>
 </html>

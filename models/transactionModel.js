@@ -1,5 +1,3 @@
-//log all transactions to db or file
-
 const mongoose = require('mongoose');
 
 const transactionLogSchema = new mongoose.Schema({
@@ -20,10 +18,7 @@ const transactionLogSchema = new mongoose.Schema({
     type: String, 
     required: true
   },
-  transactionHash: {
-    type: String,
-    required: true
-  },
+  
   timestamp: {
     type: Date,
     default: Date.now
